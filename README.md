@@ -75,7 +75,7 @@ readxl_example()
 #>  [5] "deaths.xls"    "deaths.xlsx"   "geometry.xls"  "geometry.xlsx"
 #>  [9] "type-me.xls"   "type-me.xlsx"
 readxl_example("clippy.xls")
-#> [1] "/private/tmp/RtmpM1GkLC/temp_libpatha8e46f7f62bf/readxl/extdata/clippy.xls"
+#> [1] "/Library/Frameworks/R.framework/Versions/4.2/Resources/library/readxl/extdata/clippy.xls"
 ```
 
 `read_excel()` reads both xls and xlsx files and detects the format from
@@ -249,7 +249,7 @@ openxlsx provides “a high level interface to writing, styling and
 editing worksheets”.
 
 ``` r
-l <- list(iris = iris, mtcars = mtcars, chickwts = chickwts, quakes = quakes)
+l <- list(mtcars = mtcars, chickwts = chickwts, quakes = quakes)
 openxlsx::write.xlsx(l, file = "inst/extdata/datasets.xlsx")
 ```
 

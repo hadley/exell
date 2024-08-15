@@ -149,7 +149,7 @@ Here are some other packages with functionality that is complementary to readxl 
 __Writing Excel files__: The example files `datasets.xlsx` and `datasets.xls` were created with the help of [openxlsx](https://CRAN.R-project.org/package=openxlsx) (and Excel). openxlsx provides "a high level interface to writing, styling and editing worksheets".
 
 ```{r eval = FALSE}
-l <- list(iris = iris, mtcars = mtcars, chickwts = chickwts, quakes = quakes)
+l <- list(mtcars = mtcars, chickwts = chickwts, quakes = quakes)
 openxlsx::write.xlsx(l, file = "inst/extdata/datasets.xlsx")
 ```
 
