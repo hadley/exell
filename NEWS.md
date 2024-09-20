@@ -1,5 +1,9 @@
 # readxl (development version)
 
+# readxl 1.5.0
+
+* Sheet number in `read_excel()`, `read_xls()`, and `read_xlsx()` can now be negative or infinite to select the sheet counting from the last one (#742, @DanChaltiel).
+
 # readxl 1.4.3
 
 This release contains no user-facing changes.
