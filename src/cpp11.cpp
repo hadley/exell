@@ -20,6 +20,13 @@ extern "C" SEXP _readxl_read_xlsx_(SEXP path, SEXP sheet_i, SEXP limits, SEXP sh
   END_CPP11
 }
 // XlsWorkBook.cpp
+cpp11::list xls_names(std::string path);
+extern "C" SEXP _readxl_xls_names(SEXP path) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(xls_names(cpp11::as_cpp<cpp11::decay_t<std::string>>(path)));
+  END_CPP11
+}
+// XlsWorkBook.cpp
 cpp11::strings xls_sheets(std::string path);
 extern "C" SEXP _readxl_xls_sheets(SEXP path) {
   BEGIN_CPP11
@@ -31,6 +38,13 @@ std::set<int> xls_date_formats(std::string path);
 extern "C" SEXP _readxl_xls_date_formats(SEXP path) {
   BEGIN_CPP11
     return cpp11::as_sexp(xls_date_formats(cpp11::as_cpp<cpp11::decay_t<std::string>>(path)));
+  END_CPP11
+}
+// XlsxWorkBook.cpp
+cpp11::list xlsx_names(std::string path);
+extern "C" SEXP _readxl_xlsx_names(SEXP path) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(xlsx_names(cpp11::as_cpp<cpp11::decay_t<std::string>>(path)));
   END_CPP11
 }
 // XlsxWorkBook.cpp
@@ -68,8 +82,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_readxl_read_xls_",         (DL_FUNC) &_readxl_read_xls_,         10},
     {"_readxl_read_xlsx_",        (DL_FUNC) &_readxl_read_xlsx_,        10},
     {"_readxl_xls_date_formats",  (DL_FUNC) &_readxl_xls_date_formats,   1},
+    {"_readxl_xls_names",         (DL_FUNC) &_readxl_xls_names,          1},
     {"_readxl_xls_sheets",        (DL_FUNC) &_readxl_xls_sheets,         1},
     {"_readxl_xlsx_date_formats", (DL_FUNC) &_readxl_xlsx_date_formats,  1},
+    {"_readxl_xlsx_names",        (DL_FUNC) &_readxl_xlsx_names,         1},
     {"_readxl_xlsx_sheets",       (DL_FUNC) &_readxl_xlsx_sheets,        1},
     {"_readxl_xlsx_strings",      (DL_FUNC) &_readxl_xlsx_strings,       1},
     {"_readxl_zip_xml",           (DL_FUNC) &_readxl_zip_xml,            2},

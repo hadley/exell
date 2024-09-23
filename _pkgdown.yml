@@ -41,6 +41,7 @@ reference:
       Functions to learn properties of xls and xlsx files.
     contents:
       - excel_sheets
+      - excel_names
       - excel_format
   - title: "Describe a target rectangle"
     desc: >

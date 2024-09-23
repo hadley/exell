@@ -858,3 +858,21 @@ char* xls_getCSS(xlsWorkBook* pWB)
 
     return ret;
 }
+
+
+// concatenate strings (strcat), reallocating the destination buffer
+// if necessary
+char *strcat_realloc(char *s, char *add, size_t *buflenptr)
+{
+  size_t n = strlen(s) + strlen(add);
+  if(n >= *buflenptr) {
+    *buflenptr = 2 * n;
+    s = realloc(s, (*buflenptr) * sizeof(char));
+  }
+
+  strcat(s, add);
+
+  return s;
+}
+
+

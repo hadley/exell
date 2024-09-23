@@ -61,11 +61,15 @@
 int xls_debug = 0;
 
 static double NumFromRk(DWORD drk);
+static int escape_sheetname(char *sheetname);
 static xls_formula_handler formula_handler;
 
 static xls_error_t xls_addSST(xlsWorkBook* pWB, SST* sst, DWORD size);
 static xls_error_t xls_appendSST(xlsWorkBook* pWB, BYTE* buf, DWORD size);
 static xls_error_t xls_addFormat(xlsWorkBook* pWB, FORMAT* format, DWORD size);
+static xls_error_t xls_addSupBook(xlsWorkBook* pWB, SUPBOOK* supbook, DWORD size);
+static xls_error_t xls_addExternSheet(xlsWorkBook* pWB, XTIARRAY* rgxti, DWORD size);
+static xls_error_t xls_addDefinedName(xlsWorkBook* pWB, LBL* lbl, DWORD size);
 static xls_error_t xls_addSheet(xlsWorkBook* pWB, BOUNDSHEET* bs, DWORD size);
 static xls_error_t xls_addRow(xlsWorkSheet* pWS,ROW* row);
 static xls_error_t xls_makeTable(xlsWorkSheet* pWS);
@@ -114,6 +118,19 @@ typedef struct {
 	uint32_t		propertyID;
 	uint32_t		data[1];
 } property;
+
+typedef struct {
+  uint16_t row;
+  int16_t col;
+} RGCE_LOCREL;
+
+typedef struct {
+  uint16_t row_first;
+  uint16_t row_last;
+  int16_t col_first;
+  int16_t col_last;
+} RGCE_AREAREL;
+
 
 #pragma pack(pop)
 
@@ -343,6 +360,100 @@ static double NumFromRk(DWORD drk)
     }
     return ret;
 }
+
+
+static xls_error_t xls_addSupBook(xlsWorkBook* pWB, SUPBOOK* supbook, DWORD size)
+{
+  pWB->supbooks.supbook = realloc(pWB->supbooks.supbook,(pWB->supbooks.count+1)*sizeof (struct st_supbook_data));
+  if (pWB->supbooks.supbook == NULL) {
+    return LIBXLS_ERROR_MALLOC;
+  }
+
+  struct st_supbook_data *sb = &(pWB->supbooks.supbook[pWB->supbooks.count]);
+
+  switch(supbook->cch) {
+  case 0x0401:
+    sb->reftype = ref_self;
+    break;
+  case 0x3A01:
+    sb->reftype = ref_addin;
+    break;
+  default:
+    sb->reftype = ref_extern;
+    // not implemented: reading external workbook and sheet names
+    break;
+  }
+
+  pWB->supbooks.count++;
+
+  return LIBXLS_OK;
+}
+
+static xls_error_t xls_addExternSheet(xlsWorkBook* pWB, XTIARRAY *rgxti, DWORD size)
+{
+  int n = rgxti->length;
+
+  pWB->externsheets.sheet = realloc(pWB->externsheets.sheet,(pWB->externsheets.count+n)*sizeof(struct st_externsheet_data));
+
+  struct st_externsheet_data *ext = &(pWB->externsheets.sheet[pWB->externsheets.count]);
+  for(int i = 0; i < n; i++, ext++) {
+    ext->index = rgxti->xti[i].supbook;
+    ext->tabfirst = rgxti->xti[i].tabfirst;
+    ext->tablast = rgxti->xti[i].tablast;
+  }
+
+  pWB->externsheets.count += n;
+
+  return LIBXLS_OK;
+}
+
+
+static xls_error_t xls_addDefinedName(xlsWorkBook* pWB, LBL* lbl, DWORD size)
+{
+  char *name;
+  BYTE *formulabytes;
+
+  int is2 = 0;
+  int ln = 0;
+
+  is2 = (int)(lbl->data[0]);
+  if(is2) {
+    ln = lbl->namelength*2;
+    name = unicode_decode(lbl->data + 1, ln, pWB);
+  } else {
+    ln = lbl->namelength;
+    name = codepage_decode(lbl->data + 1, ln, pWB);
+  }
+  if (name == NULL)
+    return LIBXLS_ERROR_MALLOC;
+
+  int ofs = 1 + ln;
+
+  is2 = (int)(lbl->data[ofs]);
+  formulabytes = malloc(lbl->formulalength);
+  if(formulabytes == NULL) {
+    free(name);
+    return LIBXLS_ERROR_MALLOC;
+  }
+
+  memcpy(formulabytes, lbl->data + ofs, lbl->formulalength);
+
+  pWB->definednames.name = realloc(pWB->definednames.name,(pWB->definednames.count+1)*sizeof(struct st_definedname_data));
+  if (pWB->definednames.name == NULL) {
+    free(name);
+    free(formulabytes);
+    return LIBXLS_ERROR_MALLOC;
+  }
+
+  pWB->definednames.name[pWB->definednames.count].name=name;
+  pWB->definednames.name[pWB->definednames.count].tabindex=lbl->tabindex;
+  pWB->definednames.name[pWB->definednames.count].formulalen=lbl->formulalength;
+  pWB->definednames.name[pWB->definednames.count].formulabytes=formulabytes;
+  pWB->definednames.count++;
+
+  return LIBXLS_OK;
+}
+
 
 static xls_error_t xls_addSheet(xlsWorkBook* pWB, BOUNDSHEET *bs, DWORD size)
 {
@@ -1048,7 +1159,23 @@ xls_error_t xls_parseWorkBook(xlsWorkBook* pWB)
 			retval = LIBXLS_ERROR_UNSUPPORTED_ENCRYPTION;
 			goto cleanup;
 		
+    case XLS_RECORD_SUPBOOK:
+      if ((retval = xls_addSupBook(pWB, (SUPBOOK*)buf, bof1.size)) != LIBXLS_OK) {
+        goto cleanup;
+      }
+      break;
+
+    case XLS_RECORD_EXTERNSHEET:
+      if ((retval = xls_addExternSheet(pWB, (XTIARRAY*)buf, bof1.size)) != LIBXLS_OK) {
+        goto cleanup;
+      }
+      break;
+
 		case XLS_RECORD_DEFINEDNAME:
+		  if ((retval = xls_addDefinedName(pWB, (LBL*)buf, bof1.size)) != LIBXLS_OK) {
+		    goto cleanup;
+		  }
+		  break;
 			if(xls_debug) {
 				int i;
                 printf("   DEFINEDNAME: ");
@@ -1475,6 +1602,9 @@ static xlsWorkBook *xls_open_ole(OLE2 *ole, const char *charset, xls_error_t *ou
     pWB->sheets.count=0;
     pWB->xfs.count=0;
     pWB->fonts.count=0;
+    pWB->supbooks.count=0;
+    pWB->externsheets.count=0;
+    pWB->definednames.count=0;
     pWB->charset = strdup(charset ? charset : "UTF-8");
 
     retval = xls_parseWorkBook(pWB);
@@ -1604,6 +1734,30 @@ void xls_close_WB(xlsWorkBook* pWB)
             free(pWB->formats.format[i].value);
         }
         free(pWB->formats.format);
+    }
+
+    // supbooks
+    {
+      if(pWB->supbooks.count) {
+        free(pWB->supbooks.supbook);
+      }
+    }
+
+    // externsheets
+    {
+      if(pWB->externsheets.count) {
+        free(pWB->externsheets.sheet);
+      }
+    }
+
+    // definednames
+    {
+      DWORD i;
+      for(i=0; i<pWB->definednames.count; ++i) {
+        free(pWB->definednames.name[i].name);
+        free(pWB->definednames.name[i].formulabytes);
+      }
+      free(pWB->definednames.name);
     }
 
     // buffers
@@ -1798,4 +1952,172 @@ static void xls_dumpSummary(char *buf,int isSummary,xlsSummaryInfo *pSI) {
 void xls_set_formula_hander(xls_formula_handler handler)
 {
 	formula_handler = handler;
+}
+
+
+char *xls_parseFormulaBytes(xlsWorkBook* pWB, BYTE *bytes, size_t len)
+{
+  int is_area;
+  unsigned row1, row2, col1, col2, row;
+  int col, is_relative_col, is_relative_row, is_all_rows, is_all_cols;
+  char *sheet1, *sheet2;
+  int escape;
+
+  char cellref[50];
+  int j = 0;
+  int CELLREF_LEN = 50;
+
+  size_t buflen = 50;
+  char *result = calloc(buflen, sizeof(char));
+  result[0] = '\0';
+
+  char *LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+  RGCE_LOCREL *loc_rel;
+  RGCE_AREAREL *area_rel;
+
+  struct st_supbook_data *spbk = NULL;
+  struct st_externsheet_data *ext = NULL;
+
+
+  switch(bytes[0]) {
+  default:
+    goto return_null;
+
+  case 0x3A: // PtgRef3D
+  case 0x3B: // PtgArea3D
+    is_area = (bytes[0] == 0x3B);
+    if(is_area) {
+      area_rel = (RGCE_AREAREL *)(bytes + 3);
+    } else {
+      loc_rel = (RGCE_LOCREL *)(bytes + 3);
+    }
+
+    // get related externsheet and supbook records
+    uint16_t ext_i = *(uint16_t *)(bytes + 1);
+    if(ext_i < pWB->externsheets.count) {
+      ext = &(pWB->externsheets.sheet[ext_i]);
+      if(ext->index < pWB->supbooks.count) {
+        spbk = &(pWB->supbooks.supbook[ext->index]);
+      }
+    }
+    if(!ext || !spbk)
+      goto return_null;
+
+    // return NULL if unsupported ref type
+    if(spbk->reftype == ref_extern || spbk->reftype == ref_addin)
+      goto return_null;
+
+    // worksheet name
+    sheet1 = pWB->sheets.sheet[ext->tabfirst].name;
+    sheet2 = pWB->sheets.sheet[ext->tablast].name;
+    escape = escape_sheetname(sheet1) || escape_sheetname(sheet2);
+    if(escape)
+      strcat_realloc(result, "'", &buflen);
+    strcat_realloc(result, sheet1, &buflen);
+    if(sheet2 != sheet1) {
+      strcat_realloc(result, ":", &buflen);
+      strcat_realloc(result, sheet2, &buflen);
+    }
+    if(escape)
+      strcat_realloc(result, "'", &buflen);
+    strcat_realloc(result, "!", &buflen);
+
+
+    // determine cell reference type
+    if(is_area) {
+      is_all_rows = area_rel->row_first == 0 && area_rel->row_last == 0xFFFF;
+      is_all_cols = area_rel->col_first == 0 && area_rel->col_last == 0xFF;
+      row1 = area_rel->row_first;
+      row2 = area_rel->row_last;
+      col1 = area_rel->col_first;
+      col2 = area_rel->col_last;
+    } else {
+      is_all_rows = 0;
+      is_all_cols = 0;
+      row1 = loc_rel->row;
+      col1 = loc_rel->col;
+      row2 = row1;
+      col2 = col1;
+    }
+
+
+    // build cell reference
+    row = row1;
+    col = col1 & 0x3FFF;
+    is_relative_col = (col1 & 0x4000);
+    is_relative_row = (col1 & 0x8000);
+
+    if(!is_all_cols) {
+      if(!is_relative_col)
+        cellref[j++] = '$';
+      if(col >= 26)
+        cellref[j++] = LETTERS[(col / 26)-1];
+      cellref[j++] = LETTERS[col % 26];
+    }
+    if(!is_all_rows || is_all_cols) {
+      if(!is_relative_row)
+        cellref[j++] = '$';
+      snprintf(cellref + j, CELLREF_LEN - j, "%d", row+1);
+      j = strlen(cellref);
+    }
+
+    if(is_area) {
+      cellref[j++] = ':';
+
+      row = row2;
+      col = col2 & 0x3FFF;
+      is_relative_col = (col2 & 0x4000);
+      is_relative_row = (col2 & 0x8000);
+
+      if(!is_all_cols) {
+        if(!is_relative_col)
+          cellref[j++] = '$';
+        if(col >= 26)
+          cellref[j++] = LETTERS[(col / 26)-1];
+        cellref[j++] = LETTERS[col % 26];
+      }
+      if(!is_all_rows || is_all_cols) {
+        if(!is_relative_row)
+          cellref[j++] = '$';
+        snprintf(cellref + j, CELLREF_LEN - j, "%d", row+1);
+        j = strlen(cellref);
+      }
+    }
+
+    cellref[j++] = '\0';
+    result = strcat_realloc(result, cellref, &buflen);
+
+    break;
+  }
+
+
+  // shrink allocated memory to string size
+  result = realloc(result, (strlen(result)+1) * sizeof(char));
+
+  return result;
+
+return_null:
+  free(result);
+  return NULL;
+}
+
+
+// returns true if worksheet name needs to be escaped with ''
+static int escape_sheetname(char *sheetname)
+{
+  int n = strlen(sheetname);
+  if(n == 0)
+    return 0;
+
+  char c = sheetname[0];
+  if(!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || c == '_'))
+    return 1;
+
+  for(int i = 1; i < n; i++) {
+    c = sheetname[i];
+    if(!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_'))
+      return 1;
+  }
+  return 0;
 }

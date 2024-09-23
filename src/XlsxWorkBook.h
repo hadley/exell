@@ -26,6 +26,12 @@ class XlsxWorkBook {
     cpp11::writable::strings id_;
     std::map<std::string, std::string> target_;
 
+    // defined names
+    int defn_n_;
+    cpp11::writable::strings defn_names_;
+    cpp11::writable::strings defn_context_;
+    cpp11::writable::strings defn_ref_;
+
     // populate workbook element of part_
     void parse_package_rels(const std::string& path) {
       std::string rels_xml_file = zip_buffer(path, "_rels/.rels");
@@ -101,6 +107,48 @@ class XlsxWorkBook {
         id_ = Rf_lengthgets(id_, i);
         n_ = i;
       }
+
+      // parse defined names
+      rapidxml::xml_node<>* defns = root->first_node("definedNames");
+      i = 0;
+      if (defns != NULL) {
+        for (rapidxml::xml_node<>* defn = defns->first_node();
+             defn; defn = defn->next_sibling()) {
+          if (i >= defn_n_) {
+            defn_n_ *= 2;
+            defn_names_ = Rf_lengthgets(names_, defn_n_);
+            defn_context_ = Rf_lengthgets(names_, defn_n_);
+            defn_ref_ = Rf_lengthgets(names_, defn_n_);
+          }
+
+          rapidxml::xml_attribute<>* defn_name = defn->first_attribute("name");
+          defn_names_[i] = (defn_name != NULL) ? Rf_mkCharCE(defn_name->value(), CE_UTF8) : NA_STRING;
+
+          rapidxml::xml_attribute<>* defn_sheetId = defn->first_attribute("localSheetId");
+          if(defn_sheetId == NULL) {
+            defn_context_[i] = NA_STRING;
+          } else {
+            int index = std::stoi(defn_sheetId->value());
+            if(index >= n_) {
+              defn_context_[i] = NA_STRING;
+            } else {
+              cpp11::r_string rs = names_.at(index);
+              defn_context_[i] = (SEXP)rs;
+            }
+          }
+
+          defn_ref_[i] = Rf_mkCharCE(defn->value(), CE_UTF8);
+
+          i++;
+        }
+      }
+
+      if (i != defn_n_) {
+        defn_names_ = Rf_lengthgets(defn_names_, i);
+        defn_context_ = Rf_lengthgets(defn_context_, i);
+        defn_ref_ = Rf_lengthgets(defn_ref_, i);
+        defn_n_ = i;
+      }
     }
 
     // populates target_
@@ -155,7 +203,11 @@ class XlsxWorkBook {
     PackageRelations(const std::string& path) :
     n_(100),
     names_(n_),
-    id_(n_)
+    id_(n_),
+    defn_n_(20),
+    defn_names_(20),
+    defn_context_(20),
+    defn_ref_(20)
     {
       parse_package_rels(path);
       parse_workbook(path);
@@ -164,6 +216,16 @@ class XlsxWorkBook {
 
     cpp11::strings names() const {
       return names_;
+    }
+
+    cpp11::list definedNames() const {
+      cpp11::writable::list result(3);
+      cpp11::strings names({"name", "context", "ref"});
+      result.attr("names") = names;
+      result[0] = defn_names_;
+      result[1] = defn_context_;
+      result[2] = defn_ref_;
+      return result;
     }
 
     int n_sheets() const {
@@ -216,6 +278,10 @@ public:
 
   int n_sheets() const {
     return rel_.n_sheets();
+  }
+
+  cpp11::list definedNames() const {
+    return rel_.definedNames();
   }
 
   cpp11::strings sheets() const {

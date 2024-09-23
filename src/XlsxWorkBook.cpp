@@ -1,6 +1,11 @@
 #include "XlsxWorkBook.h"
 
 [[cpp11::register]]
+cpp11::list xlsx_names(std::string path) {
+  return XlsxWorkBook(path).definedNames();
+}
+
+[[cpp11::register]]
 cpp11::strings xlsx_sheets(std::string path) {
   return XlsxWorkBook(path).sheets();
 }

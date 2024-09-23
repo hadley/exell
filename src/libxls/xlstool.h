@@ -41,6 +41,7 @@ char *codepage_decode(const char *s, size_t len, xlsWorkBook *pWB);
 char *unicode_decode(const char *s, size_t len, xlsWorkBook *pWB);
 char *transcode_utf16_to_utf8(const char *s, size_t len);
 char *get_string(const char *s, size_t len, BYTE is2, xlsWorkBook *pWB);
+char *strcat_realloc(char *s, char *add, size_t *buflenptr);
 DWORD xls_getColor(const WORD color,WORD def);
 
 void xls_showBookInfo(xlsWorkBook* pWB);

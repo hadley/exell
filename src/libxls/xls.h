@@ -84,6 +84,10 @@ void xls_close_summaryInfo(xlsSummaryInfo *pSI);
 xlsRow *xls_row(xlsWorkSheet* pWS, WORD cellRow);
 xlsCell	*xls_cell(xlsWorkSheet* pWS, WORD cellRow, WORD cellCol);
 
+// parse defined name formula
+char *xls_parseFormulaBytes(xlsWorkBook* pWB, BYTE *bytes, size_t len);
+
+
 #ifdef __cplusplus
 } // extern c block
 } // namespace

@@ -39,6 +39,7 @@
 #include "libxls/ole.h"
 
 #define XLS_RECORD_EOF          0x000A
+#define XLS_RECORD_EXTERNSHEET  0x0017
 #define XLS_RECORD_DEFINEDNAME  0x0018
 #define XLS_RECORD_NOTE         0x001C
 #define XLS_RECORD_1904         0x0022
@@ -62,6 +63,7 @@
 #define XLS_RECORD_SST          0x00FC
 #define XLS_RECORD_LABELSST     0x00FD
 #define XLS_RECORD_EXTSST       0x00FF
+#define XLS_RECORD_SUPBOOK      0x01AE
 #define XLS_RECORD_TXO          0x01B6
 #define XLS_RECORD_HYPERREF     0x01B8
 #define XLS_RECORD_BLANK        0x0201
@@ -332,6 +334,47 @@ typedef struct FORMAT
 }
 FORMAT;
 
+
+typedef struct SUPBOOK
+{
+    WORD  ctab;
+    WORD  cch;
+    BYTE  data[1];
+}
+SUPBOOK;
+
+
+typedef struct XTI
+{
+    WORD  supbook;
+    WORD  tabfirst;
+    WORD  tablast;
+}
+XTI;
+
+typedef struct XTIARRAY
+{
+    WORD  length;
+    struct XTI  xti[1];
+}
+XTIARRAY;
+
+typedef struct LBL
+{
+    WORD  flags;
+    BYTE  shortcutkey;
+    BYTE  namelength;
+    WORD  formulalength;
+    WORD  reserved3;
+    WORD  tabindex;
+    BYTE  reserved4;
+    BYTE  reserved5;
+    BYTE  reserved6;
+    BYTE  reserved7;
+    char  data[1];
+}
+LBL;
+
 #pragma pack(pop)
 
 //---------------------------------------------------------
@@ -478,6 +521,48 @@ typedef	struct st_colinfo
 }
 st_colinfo;
 
+typedef enum e_reftype {
+  ref_self,
+  ref_addin,
+  ref_extern
+} e_reftype;
+
+typedef struct st_supbook
+{
+  DWORD count;
+  struct st_supbook_data
+  {
+    enum e_reftype reftype;
+  } * supbook;
+}
+st_supbook;
+
+typedef struct st_externsheet
+{
+  DWORD count;
+  struct st_externsheet_data
+  {
+    WORD index;
+    int16_t tabfirst;
+    int16_t tablast;
+  } * sheet;
+}
+st_externsheet;
+
+typedef struct st_definedname
+{
+  DWORD count;
+  struct st_definedname_data
+  {
+    char *  name;
+    int tabindex;
+    size_t  formulalen;
+    BYTE *  formulabytes;
+  } * name;
+}
+st_definedname;
+
+
 typedef struct xlsWorkBook
 {
     //FILE*		file;
@@ -498,6 +583,9 @@ typedef struct xlsWorkBook
     st_xf		xfs;			// XF table
     st_font		fonts;
     st_format	formats;		// FORMAT table
+    st_supbook  supbooks;
+    st_externsheet  externsheets;
+    st_definedname  definednames;
 
 	char		*summary;		// ole file
 	char		*docSummary;	// ole file

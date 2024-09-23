@@ -8,6 +8,7 @@
 #include "cpp11/R.hpp"
 #include "cpp11/r_string.hpp"
 #include "cpp11/strings.hpp"
+#include "cpp11/integers.hpp"
 
 class XlsWorkBook {
 
@@ -21,9 +22,16 @@ class XlsWorkBook {
   int n_sheets_;
   cpp11::writable::strings sheets_;
 
+  int n_definedNames_;
+  cpp11::writable::strings defn_names_;
+  cpp11::writable::strings defn_context_;
+  cpp11::writable::strings defn_formulas_;
+
 public:
 
-  XlsWorkBook(const std::string& path):
+  XlsWorkBook(const std::string& path):XlsWorkBook(path, false) {}
+
+  XlsWorkBook(const std::string& path, bool processDefinedNames):
   stringTable_{"placeholder"}
   {
     // the user's path has probably been translated to UTF-8 by
@@ -50,6 +58,31 @@ public:
       sheets_[i] = Rf_mkCharCE((char*) pWB_->sheets.sheet[i].name, CE_UTF8);
     }
 
+    if(processDefinedNames) {
+      n_definedNames_ = pWB_->definednames.count;
+      defn_names_ = cpp11::writable::strings(n_definedNames());
+      defn_context_ = cpp11::writable::strings(n_definedNames());
+      defn_formulas_ = cpp11::writable::strings(n_definedNames());
+
+      for (int i = 0; i < n_definedNames_; ++i) {
+        // assign name
+        defn_names_[i] = Rf_mkCharCE((char*) pWB_->definednames.name[i].name, CE_UTF8);
+
+        // assign context
+        if(pWB_->definednames.name[i].tabindex == 0)
+          defn_context_[i] = NA_STRING;
+        else {
+          cpp11::r_string rs = sheets_.at(pWB_->definednames.name[i].tabindex - 1);
+          defn_context_[i] = (SEXP)rs;
+        }
+
+        // parse formula
+        char * formula = xls::xls_parseFormulaBytes(pWB_, pWB_->definednames.name[i].formulabytes, pWB_->definednames.name[i].formulalen);
+        defn_formulas_[i] = (formula ? Rf_mkCharCE(formula, CE_UTF8) : NA_STRING);
+        free(formula);
+      }
+    }
+
     is1904_ = pWB_->is1904;
     cacheDateFormats(pWB_);
 
@@ -62,6 +95,20 @@ public:
 
   int n_sheets() const {
     return n_sheets_;
+  }
+
+  int n_definedNames() const {
+    return n_definedNames_;
+  }
+
+  cpp11::list definedNames() const {
+    cpp11::writable::list result(3);
+    cpp11::strings names({"name", "context", "ref"});
+    result.attr("names") = names;
+    result[0] = defn_names_;
+    result[1] = defn_context_;
+    result[2] = defn_formulas_;
+    return result;
   }
 
   cpp11::strings sheets() const {

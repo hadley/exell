@@ -8,12 +8,20 @@ read_xlsx_ <- function(path, sheet_i, limits, shim, col_names, col_types, na, tr
   .Call(`_readxl_read_xlsx_`, path, sheet_i, limits, shim, col_names, col_types, na, trim_ws, guess_max, progress)
 }
 
+xls_names <- function(path) {
+  .Call(`_readxl_xls_names`, path)
+}
+
 xls_sheets <- function(path) {
   .Call(`_readxl_xls_sheets`, path)
 }
 
 xls_date_formats <- function(path) {
   .Call(`_readxl_xls_date_formats`, path)
+}
+
+xlsx_names <- function(path) {
+  .Call(`_readxl_xlsx_names`, path)
 }
 
 xlsx_sheets <- function(path) {
