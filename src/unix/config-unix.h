@@ -52,6 +52,9 @@
 #define HAVE_WCHAR_H 1
 
 /* Define to 1 if you have the `wcstombs_l' function. */
+#ifdef __NetBSD__
+#define HAVE_WCSTOMBS_L 1
+#endif
 /* #undef HAVE_WCSTOMBS_L */
 
 /* Define to 1 if you have the <xlocale.h> header file. */
