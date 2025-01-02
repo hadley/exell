@@ -7,7 +7,7 @@
 #' using helper functions. You can find more examples at the
 #'  [sheet geometry](https://readxl.tidyverse.org/articles/sheet-geometry.html#range)
 #'  vignette. In all cases, cell range processing is handled by the
-#' [cellranger][cellranger] package, where you can find full documentation for
+#' [cellranger][cellranger::cellranger] package, where you can find full documentation for
 #' the functions used in the examples below.
 #'
 #' @examples
@@ -52,7 +52,7 @@
 #' # upper right = D4, everything else unspecified
 #' read_excel(path, range = cell_limits(c(4, NA), c(NA, 4)))
 #'
-#' @seealso The [cellranger][cellranger] package has full documentation on cell
+#' @seealso The [cellranger][cellranger::cellranger] package has full documentation on cell
 #'   specification and offers additional functions for manipulating "A1:D10"
 #'   style spreadsheet ranges. Here are the most relevant:
 #'   \itemize{

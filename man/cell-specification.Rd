@@ -15,7 +15,7 @@ Excel-like cell range, such as \code{range = "D12:F15"} or
 using helper functions. You can find more examples at the
 \href{https://readxl.tidyverse.org/articles/sheet-geometry.html#range}{sheet geometry}
 vignette. In all cases, cell range processing is handled by the
-\link{cellranger} package, where you can find full documentation for
+\link[cellranger:cellranger]{cellranger} package, where you can find full documentation for
 the functions used in the examples below.
 }
 \examples{
@@ -62,7 +62,7 @@ read_excel(path, range = cell_limits(c(4, NA), c(NA, 4)))
 
 }
 \seealso{
-The \link{cellranger} package has full documentation on cell
+The \link[cellranger:cellranger]{cellranger} package has full documentation on cell
 specification and offers additional functions for manipulating "A1:D10"
 style spreadsheet ranges. Here are the most relevant:
 \itemize{
