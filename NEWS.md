@@ -1,5 +1,7 @@
 # readxl (development version)
 
+* `.name_repair` is now deprecated in favour of `name_repair` (@olivroy, #729).
+
 # readxl 1.4.3
 
 This release contains no user-facing changes.

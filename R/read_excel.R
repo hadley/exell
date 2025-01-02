@@ -41,9 +41,10 @@ NULL
 #'   only in an interactive session, outside the context of knitting a document,
 #'   and when the call is likely to run for several seconds or more. See
 #'   [readxl_progress()] for more details.
-#' @param .name_repair Handling of column names. Passed along to
-#'   [tibble::as_tibble()]. readxl's default is `.name_repair = "unique", which
+#' @param name_repair Handling of column names. Passed along to
+#'   [tibble::as_tibble()]. readxl's default is `name_repair = "unique"`, which
 #'   ensures column names are not empty and are unique.
+#' @param .name_repair `r lifecycle::badge("deprecated")`. Use `name_repair` instead.
 #' @return A [tibble][tibble::tibble-package]
 #' @seealso [cell-specification] for more details on targetting cells with the
 #'   `range` argument
@@ -92,46 +93,55 @@ NULL
 #' # Get a preview of column names
 #' names(read_excel(readxl_example("datasets.xlsx"), n_max = 0))
 #'
-#' # exploit full .name_repair flexibility from tibble
+#' # exploit full name_repair flexibility from tibble
 #'
 #' # "universal" names are unique and syntactic
 #' read_excel(
 #'   readxl_example("deaths.xlsx"),
 #'   range = "arts!A5:F15",
-#'   .name_repair = "universal"
+#'   name_repair = "universal"
 #' )
 #'
 #' # specify name repair as a built-in function
-#' read_excel(readxl_example("clippy.xlsx"), .name_repair = toupper)
+#' read_excel(readxl_example("clippy.xlsx"), name_repair = toupper)
 #'
 #' # specify name repair as a custom function
 #' my_custom_name_repair <- function(nms) tolower(gsub("[.]", "_", nms))
 #' read_excel(
 #'   readxl_example("datasets.xlsx"),
-#'   .name_repair = my_custom_name_repair
+#'   name_repair = my_custom_name_repair
 #' )
 #'
 #' # specify name repair as an anonymous function
 #' read_excel(
 #'   readxl_example("datasets.xlsx"),
 #'   sheet = "chickwts",
-#'   .name_repair = ~ substr(.x, start = 1, stop = 3)
+#'   name_repair = ~ substr(.x, start = 1, stop = 3)
 #' )
 read_excel <- function(path, sheet = NULL, range = NULL,
                        col_names = TRUE, col_types = NULL,
                        na = "", trim_ws = TRUE, skip = 0, n_max = Inf,
                        guess_max = min(1000, n_max),
                        progress = readxl_progress(),
-                       .name_repair = "unique") {
+                       name_repair = "unique",
+                       .name_repair = deprecated()) {
   path <- check_file(path)
   format <- check_format(path)
+  if (lifecycle::is_present(.name_repair)) {
+    lifecycle::deprecate_warn(
+      "1.5.0",
+      "read_excel(.name_repair)",
+      "read_excel(name_repair)"
+    )
+    name_repair <- .name_repair
+  }
   read_excel_(
     path = path, sheet = sheet, range = range,
     col_names = col_names, col_types = col_types,
     na = na, trim_ws = trim_ws, skip = skip,
     n_max = n_max, guess_max = guess_max,
     progress = progress,
-    .name_repair = .name_repair,
+    name_repair = name_repair,
     format = format
   )
 }
@@ -147,15 +157,24 @@ read_xls <- function(path, sheet = NULL, range = NULL,
                      na = "", trim_ws = TRUE, skip = 0, n_max = Inf,
                      guess_max = min(1000, n_max),
                      progress = readxl_progress(),
-                     .name_repair = "unique") {
+                     name_repair = "unique",
+                     .name_repair = deprecated()) {
   path <- check_file(path)
+  if (lifecycle::is_present(.name_repair)) {
+    lifecycle::deprecate_warn(
+      "1.5.0",
+      "read_xls(.name_repair)",
+      "read_xls(name_repair)"
+    )
+    name_repair <- .name_repair
+  }
   read_excel_(
     path = path, sheet = sheet, range = range,
     col_names = col_names, col_types = col_types,
     na = na, trim_ws = trim_ws, skip = skip,
     n_max = n_max, guess_max = guess_max,
     progress = progress,
-    .name_repair = .name_repair,
+    name_repair = name_repair,
     format = "xls"
   )
 }
@@ -167,15 +186,24 @@ read_xlsx <- function(path, sheet = NULL, range = NULL,
                       na = "", trim_ws = TRUE, skip = 0, n_max = Inf,
                       guess_max = min(1000, n_max),
                       progress = readxl_progress(),
-                      .name_repair = "unique") {
+                      name_repair = "unique",
+                      .name_repair = deprecated()) {
   path <- check_file(path)
+  if (lifecycle::is_present(.name_repair)) {
+    lifecycle::deprecate_warn(
+      "1.5.0",
+      "read_xlsx(.name_repair)",
+      "read_xlsx(name_repair)"
+    )
+    name_repair <- .name_repair
+  }
   read_excel_(
     path = path, sheet = sheet, range = range,
     col_names = col_names, col_types = col_types,
     na = na, trim_ws = trim_ws, skip = skip,
     n_max = n_max, guess_max = guess_max,
     progress = progress,
-    .name_repair = .name_repair,
+    name_repair = name_repair,
     format = "xlsx"
   )
 }
@@ -185,7 +213,7 @@ read_excel_ <- function(path, sheet = NULL, range = NULL,
                         na = "", trim_ws = TRUE, skip = 0, n_max = Inf,
                         guess_max = min(1000, n_max),
                         progress = readxl_progress(),
-                        .name_repair = NULL,
+                        name_repair = NULL,
                         format) {
   if (format == "xls") {
     sheets_fun <- xls_sheets
@@ -212,7 +240,7 @@ read_excel_ <- function(path, sheet = NULL, range = NULL,
       na = na, trim_ws = trim_ws, guess_max = guess_max,
       progress = progress
     ),
-    .name_repair = .name_repair
+    name_repair = name_repair
   )
 }
 
@@ -339,10 +367,10 @@ check_guess_max <- function(guess_max, max_limit = .Machine$integer.max %/% 100)
   guess_max
 }
 
-set_readxl_names <- function(l, .name_repair = "unique") {
-  if (is.null(.name_repair)) {
+set_readxl_names <- function(l, name_repair = "unique") {
+  if (is.null(name_repair)) {
     tibble::as_tibble(l)
   } else {
-    tibble::as_tibble(l, .name_repair = .name_repair)
+    tibble::as_tibble(l, .name_repair = name_repair)
   }
 }

@@ -28,17 +28,17 @@ read_excel(
 
 But users have long wanted a way to specify a name repair *strategy*, as opposed to enumerating the actual column names.
 
-## Built-in levels of `.name_repair`
+## Built-in levels of `name_repair`
 
-As of v1.2.0, readxl provides the `.name_repair` argument, which affords control over how column names are checked or repaired.
+As of v1.2.0, readxl provides the `name_repair` (`.name_repair` between 1.2.0 and 1.4.3) argument, which affords control over how column names are checked or repaired.
 
-The `.name_repair` argument in `read_excel()`, `read_xls()`, and `read_xlsx()` works exactly the same way as it does in [`tibble::tibble()`](https://tibble.tidyverse.org/reference/tibble.html) and [`tibble::as_tibble()`](https://tibble.tidyverse.org/reference/as_tibble.html).
+The `name_repair` argument in `read_excel()`, `read_xls()`, and `read_xlsx()` works exactly the same way as it does in [`tibble::tibble()`](https://tibble.tidyverse.org/reference/tibble.html) and [`tibble::as_tibble()`](https://tibble.tidyverse.org/reference/as_tibble.html).
 The reasoning behind the name repair strategy is laid out in [design.tidyverse.org](https://design.tidyverse.org/names.html).
 
-readxl's default is `.name_repair = "unique"`, which ensures each column has a unique name.
+readxl's default is `name_repair = "unique"`, which ensures each column has a unique name.
 If that is already true of the column names, readxl won't touch them.
 
-The value `.name_repair = "universal"` goes further and makes column names syntactic, i.e. makes sure they don't contain any forbidden characters or reserved words. This makes life easier if you use packages like ggplot2 and dplyr downstream, because the column names will "just work" everywhere and won't require protection via backtick quotes.
+The value `name_repair = "universal"` goes further and makes column names syntactic, i.e. makes sure they don't contain any forbidden characters or reserved words. This makes life easier if you use packages like ggplot2 and dplyr downstream, because the column names will "just work" everywhere and won't require protection via backtick quotes.
 
 Compare the column names in these two calls. This shows the difference between `"unique"` (names can contain spaces) and `"universal"` (spaces replaced by `.`).
 
@@ -49,32 +49,32 @@ read_excel(
 
 read_excel(
   readxl_example("deaths.xlsx"), range = "arts!A5:F8",
-  .name_repair = "universal"
+  name_repair = "universal"
 )
 ```
 
-If you don't want readxl to touch your column names at all, use `.name_repair = "minimal"`.
+If you don't want readxl to touch your column names at all, use `name_repair = "minimal"`.
 
-## Pass a function to `.name_repair`
+## Pass a function to `name_repair`
 
-The `.name_repair` argument also accepts a function -- pre-existing or written by you -- or an anonymous formula. This function must operate on a "names in, names out" basis.
+The `name_repair` argument also accepts a function -- pre-existing or written by you -- or an anonymous formula. This function must operate on a "names in, names out" basis.
 
 ```{r}
 ## ALL CAPS! via built-in toupper()
-read_excel(readxl_example("clippy.xlsx"), .name_repair = toupper)
+read_excel(readxl_example("clippy.xlsx"), name_repair = toupper)
 
 ## lower_snake_case via a custom function
 my_custom_name_repair <- function(nms) tolower(gsub("[.]", "_", nms))
 read_excel(
   readxl_example("datasets.xlsx"), n_max = 3,
-  .name_repair = my_custom_name_repair
+  name_repair = my_custom_name_repair
 )
 
 ## take first 3 characters via anonymous function
 read_excel(
   readxl_example("datasets.xlsx"),
   sheet = "chickwts", n_max = 3,
-  .name_repair = ~ substr(.x, start = 1, stop = 3)
+  name_repair = ~ substr(.x, start = 1, stop = 3)
 )
 ```
 
@@ -83,12 +83,12 @@ This means you can also perform name repair in the style of base R or another pa
 ```{r, eval = FALSE}
 read_excel(
   SOME_SPREADSHEET,
-  .name_repair = ~ make.names(.x, unique = TRUE)
+  name_repair = ~ make.names(.x, unique = TRUE)
 )
 
 read_excel(
   SOME_SPREADSHEET,
-  .name_repair = janitor::make_clean_names
+  name_repair = janitor::make_clean_names
 )
 ```
 
@@ -97,6 +97,6 @@ What if you have a spreadsheet with lots of missing column names? Here's how you
 ```{r eval = FALSE}
 read_excel(
   SOME_SPREADSHEET,
-  .name_repair = ~ ifelse(nzchar(.x), .x, LETTERS[seq_along(.x)])
+  name_repair = ~ ifelse(nzchar(.x), .x, LETTERS[seq_along(.x)])
 ) 
 ```

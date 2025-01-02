@@ -230,7 +230,7 @@ presented by the world’s spreadsheets:
 
 - Column names and types are determined from the data in the sheet, by
   default. User can also supply via `col_names` and `col_types` and
-  control name repair via `.name_repair`.
+  control name repair via `name_repair`.
 
 - Returns a
   [tibble](https://tibble.tidyverse.org/reference/tibble.html), i.e. a

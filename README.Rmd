@@ -138,7 +138,7 @@ We also have some focused articles that address specific aggravations presented 
 
 * Discovers the minimal data rectangle and returns that, by default. User can exert more control with `range`, `skip`, and `n_max`.
 
-* Column names and types are determined from the data in the sheet, by default. User can also supply via `col_names` and `col_types` and control name repair via `.name_repair`.
+* Column names and types are determined from the data in the sheet, by default. User can also supply via `col_names` and `col_types` and control name repair via `name_repair`.
 
 * Returns a [tibble](https://tibble.tidyverse.org/reference/tibble.html), i.e. a data frame with an additional `tbl_df` class. Among other things, this provide nicer printing.
 

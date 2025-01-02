@@ -32,10 +32,10 @@ Depends:
     R (>= 3.6)
 Imports:
     cellranger,
+    lifecycle,
     tibble (>= 2.0.1),
     utils
 Suggests:
-    covr,
     knitr,
     rmarkdown,
     testthat (>= 3.1.6),
